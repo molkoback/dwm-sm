@@ -15,7 +15,9 @@
 #define LEN_WIDGET 64
 #define MAX_WIDGETS 8
 
+static void battery_widget(char *wbuf);
 static void clock_widget(char *wbuf);
+
 static void die(const char *err);
 static void widget_add(char widget);
 static void sm_update(char *sbuf);
@@ -23,6 +25,32 @@ static void sm_print(char *sbuf);
 
 static void (*widget_funcs[MAX_WIDGETS])(char *);
 static unsigned int nwidgets = 0;
+
+int
+readline(const char *fn, char *buf, unsigned int n)
+{
+	FILE *fp = NULL;
+	char *pos;
+	
+	if (!(fp = fopen(fn, "rb")))
+		return -1;
+	fgets(buf, n, fp);
+	if ((pos = strchr(buf, '\n')))
+		*pos = '\0';
+	fclose(fp);
+	return 0;
+}
+
+void
+battery_widget(char *wbuf)
+{
+	char buf[5];
+	
+	if (readline(battery_file, buf, 5) < 0)
+		sprintf(wbuf, "[AC]");
+	else
+		sprintf(wbuf, "[%s%%]", buf);
+}
 
 void
 clock_widget(char *wbuf)
@@ -35,7 +63,8 @@ clock_widget(char *wbuf)
 	strftime(wbuf, LEN_WIDGET, "[%H:%M:%S]", info);
 }
 
-void die(const char *err)
+void
+die(const char *err)
 {
 	fprintf(stderr, "error: %s\n", err);
 	exit(EXIT_FAILURE);
@@ -46,13 +75,16 @@ widget_add(char widget)
 {
 	if (nwidgets >= MAX_WIDGETS)
 		die("too many widgets");
-	
+
 	switch (widget) {
-	case 'c':
-		widget_funcs[nwidgets] = clock_widget;
-		break;
-	default:
-		die("invalid widget");
+		case 'b':
+			widget_funcs[nwidgets] = battery_widget;
+			break;
+		case 'c':
+			widget_funcs[nwidgets] = clock_widget;
+			break;
+		default:
+			die("invalid widget");
 	}
 	nwidgets++;
 }
@@ -62,7 +94,7 @@ sm_update(char *sbuf)
 {
 	unsigned int i;
 	char wbuf[LEN_WIDGET];
-	
+
 	memset(sbuf, 0, LEN_STATUS);
 	for (i = 0; i < nwidgets; i++) {
 		memset(wbuf, 0, LEN_WIDGET);
@@ -83,7 +115,7 @@ sm_print(char *sbuf)
 int
 main()
 {
-	char *wp = widgets;
+	const char *wp = widgets;
 	char sbuf[LEN_STATUS];
 	
 	while (*wp != '\0')
