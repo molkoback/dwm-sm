@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <X11/Xlib.h>
+
 #include "config.h"
 
 #define LEN_STATUS 512
@@ -18,8 +20,8 @@ static void battery_widget(char *wbuf);
 static void clock_widget(char *wbuf);
 
 static void widget_run(char *wbuf, char widget);
-static void sm_update(char *sbuf, const char *fmt);
-static void sm_print(char *sbuf);
+static void status_update(char *sbuf, const char *fmt);
+static void status_set(Display *dpy, char *sbuf);
 
 int
 readline(const char *fn, char *buf, unsigned int n)
@@ -77,7 +79,7 @@ widget_run(char *wbuf, char w)
 }
 
 void
-sm_update(char *sbuf, const char *fmt)
+status_update(char *sbuf, const char *fmt)
 {
 	const char *p = fmt-1;
 	char wbuf[LEN_WIDGET];
@@ -94,22 +96,25 @@ sm_update(char *sbuf, const char *fmt)
 }
 
 void
-sm_print(char *sbuf)
+status_set(Display *dpy, char *sbuf)
 {
-	char cmd[LEN_STATUS + 18];
-	
-	sprintf(cmd, "xsetroot -name \"%s\"", sbuf);
-	system(cmd);
+	XStoreName(dpy, DefaultRootWindow(dpy), sbuf);
+	XSync(dpy, False);
 }
 
 int
 main()
 {
 	char sbuf[LEN_STATUS];
+	Display *dpy;
 	
+	if (!(dpy = XOpenDisplay(NULL))) {
+		fprintf(stderr, "couldn't open display\n");
+		return EXIT_FAILURE;
+	}
 	for (;;) {
-		sm_update(sbuf, widgets);
-		sm_print(sbuf);
+		status_update(sbuf, widgets);
+		status_set(dpy, sbuf);
 		sleep(1);
 	}
 	return EXIT_SUCCESS; /* NOTREACHED */

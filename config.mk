@@ -1,14 +1,17 @@
 # dwm-sm version
-VERSION = 1.0
+VERSION = 1.1
 
 # Customize below to fit your system
 
 # paths
 PREFIX = /usr/local
 
+X11INC = /usr/include
+X11LIB = /usr/lib
+
 # includes and libs
-INCS =
-LIBS =
+INCS = -I${X11INC}
+LIBS = -L${X11LIB} -lX11
 
 # flags
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\"
