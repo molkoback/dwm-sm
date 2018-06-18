@@ -26,14 +26,19 @@ static void status_set(Display *dpy, char *sbuf);
 int
 readline(const char *fn, char *buf, unsigned int n)
 {
+	unsigned int i, c;
 	FILE *fp = NULL;
-	char *pos;
 	
 	if (!(fp = fopen(fn, "rb")))
 		return -1;
-	fgets(buf, n, fp);
-	if ((pos = strchr(buf, '\n')))
-		*pos = '\0';
+	for (i = 0; i < n-1; i++) {
+		c = fgetc(fp);
+		if (c == '\0' || c == '\n')
+			break;
+		else
+			buf[i] = c;
+	}
+	buf[i] = '\0';
 	fclose(fp);
 	return 0;
 }
