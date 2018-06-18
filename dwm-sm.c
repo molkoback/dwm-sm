@@ -12,19 +12,14 @@
 #include "config.h"
 
 #define LEN_STATUS 512
-#define LEN_WIDGET 64
-#define MAX_WIDGETS 8
+#define LEN_WIDGET 32
 
 static void battery_widget(char *wbuf);
 static void clock_widget(char *wbuf);
 
-static void die(const char *err);
-static void widget_add(char widget);
-static void sm_update(char *sbuf);
+static void widget_run(char *wbuf, char widget);
+static void sm_update(char *sbuf, const char *fmt);
 static void sm_print(char *sbuf);
-
-static void (*widget_funcs[MAX_WIDGETS])(char *);
-static unsigned int nwidgets = 0;
 
 int
 readline(const char *fn, char *buf, unsigned int n)
@@ -47,9 +42,9 @@ battery_widget(char *wbuf)
 	char buf[5];
 	
 	if (readline(battery_file, buf, 5) < 0)
-		sprintf(wbuf, "[AC]");
+		sprintf(wbuf, "AC");
 	else
-		sprintf(wbuf, "[%s%%]", buf);
+		sprintf(wbuf, "%s%%", buf);
 }
 
 void
@@ -57,72 +52,63 @@ clock_widget(char *wbuf)
 {
 	time_t rawtime;
 	struct tm *info;
-
+	
 	time(&rawtime);
 	info = localtime(&rawtime);
-	strftime(wbuf, LEN_WIDGET, "[%H:%M:%S]", info);
+	strftime(wbuf, LEN_WIDGET, "%H:%M:%S", info);
 }
 
 void
-die(const char *err)
+widget_run(char *wbuf, char w)
 {
-	fprintf(stderr, "error: %s\n", err);
-	exit(EXIT_FAILURE);
-}
-
-void
-widget_add(char widget)
-{
-	if (nwidgets >= MAX_WIDGETS)
-		die("too many widgets");
-
-	switch (widget) {
-		case 'b':
-			widget_funcs[nwidgets] = battery_widget;
-			break;
-		case 'c':
-			widget_funcs[nwidgets] = clock_widget;
-			break;
-		default:
-			die("invalid widget");
+	switch (w) {
+	case 'b':
+		battery_widget(wbuf);
+		break;
+	case 'c':
+		clock_widget(wbuf);
+		break;
+	case '%':
+		sprintf(wbuf, "%%");
+		break;
+	default:
+		sprintf(wbuf, "%%%c", w);
 	}
-	nwidgets++;
 }
 
 void
-sm_update(char *sbuf)
+sm_update(char *sbuf, const char *fmt)
 {
-	unsigned int i;
+	const char *p = fmt-1;
 	char wbuf[LEN_WIDGET];
-
+	
 	memset(sbuf, 0, LEN_STATUS);
-	for (i = 0; i < nwidgets; i++) {
-		memset(wbuf, 0, LEN_WIDGET);
-		widget_funcs[i](wbuf);
-		strcat(sbuf, wbuf);
+	while (*(++p)) {
+		if (*p == '%') {
+			widget_run(wbuf, *(++p));
+			strcat(sbuf, wbuf);
+		} else {
+			sbuf[strlen(sbuf)] = *p;
+		}
 	}
 }
 
 void
 sm_print(char *sbuf)
 {
-	char cmd[LEN_STATUS + 16];
+	char cmd[LEN_STATUS + 18];
 	
-	sprintf(cmd, "xsetroot -name %s", sbuf);
+	sprintf(cmd, "xsetroot -name \"%s\"", sbuf);
 	system(cmd);
 }
 
 int
 main()
 {
-	const char *wp = widgets;
 	char sbuf[LEN_STATUS];
 	
-	while (*wp != '\0')
-		widget_add(*(wp++));
-	
 	for (;;) {
-		sm_update(sbuf);
+		sm_update(sbuf, widgets);
 		sm_print(sbuf);
 		sleep(1);
 	}
