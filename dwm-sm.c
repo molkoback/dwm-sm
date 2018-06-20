@@ -17,7 +17,7 @@
 #define LEN_WIDGET 32
 
 static void battery_widget(char *wbuf);
-static void clock_widget(char *wbuf);
+static void time_widget(char *wbuf);
 
 static void widget_run(char *wbuf, char widget);
 static void status_update(char *sbuf, const char *fmt);
@@ -55,14 +55,14 @@ battery_widget(char *wbuf)
 }
 
 void
-clock_widget(char *wbuf)
+time_widget(char *wbuf)
 {
 	time_t rawtime;
 	struct tm *info;
 	
 	time(&rawtime);
 	info = localtime(&rawtime);
-	strftime(wbuf, LEN_WIDGET, "%H:%M:%S", info);
+	strftime(wbuf, LEN_WIDGET, time_fmt, info);
 }
 
 void
@@ -72,8 +72,8 @@ widget_run(char *wbuf, char w)
 	case 'b':
 		battery_widget(wbuf);
 		break;
-	case 'c':
-		clock_widget(wbuf);
+	case 't':
+		time_widget(wbuf);
 		break;
 	case '%':
 		sprintf(wbuf, "%%");
