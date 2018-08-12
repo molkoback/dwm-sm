@@ -42,4 +42,4 @@ install: all
 	chmod 755 ${DESTDIR}${PREFIX}/bin/dwm-sm
 
 uninstall:
-	rm -f $(dst)/usr/bin/$(out)
+	rm -f ${DESTDIR}${PREFIX}/bin/dwm-sm
